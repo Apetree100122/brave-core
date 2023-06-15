@@ -8,9 +8,10 @@
 
 // clang-format off
 
-#define IDR_BRAVE_VPN_TRAY_DARK         101
-#define IDR_BRAVE_VPN_TRAY_LIGHT        102
-#define IDR_BRAVE_VPN_TOGGLER_ON        103
+#define IDR_BRAVE_VPN_TRAY_DARK                   101
+#define IDR_BRAVE_VPN_TRAY_LIGHT                  102
+#define IDR_BRAVE_VPN_TRAY_DARK_CONNECTED         103
+#define IDR_BRAVE_VPN_TRAY_LIGHT_CONNECTED        104
 
 // clang-format on
 

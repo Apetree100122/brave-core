@@ -15,6 +15,7 @@
 #include "base/task/single_thread_task_executor.h"
 #include "base/task/thread_pool/thread_pool_instance.h"
 #include "brave/components/brave_vpn/browser/connection/wireguard/win/brave_vpn_wireguard_service/common/service_constants.h"
+#include "brave/components/brave_vpn/browser/connection/wireguard/win/brave_vpn_wireguard_service/common/storage_utils.h"
 #include "brave/components/brave_vpn/browser/connection/wireguard/win/brave_vpn_wireguard_service/common/wireguard_utils.h"
 #include "brave/components/brave_vpn/browser/connection/wireguard/win/brave_vpn_wireguard_service/interactive/brave_vpn_interactive_strings_en.h"
 #include "brave/components/brave_vpn/browser/connection/wireguard/win/brave_vpn_wireguard_service/interactive/brave_vpn_tray_command_ids.h"
@@ -31,6 +32,22 @@ namespace {
 constexpr char kBraveAccountURL[] = "http://account.brave.com/";
 constexpr char kAboutBraveVPNURL[] = "https://brave.com/firewall-vpn/";
 
+std::u16string GetStatusIconTooltip() {
+  return wireguard::IsBraveVPNWireguardConnected()
+             ? brave::kBraveVpnIconTooltip
+             : brave::kBraveVpnIconTooltipConnected;
+}
+
+gfx::ImageSkia GetStatusTrayIcon(bool connected) {
+  int light_icon_id =
+      connected ? IDR_BRAVE_VPN_TRAY_LIGHT_CONNECTED : IDR_BRAVE_VPN_TRAY_LIGHT;
+  int dark_icon_id =
+      connected ? IDR_BRAVE_VPN_TRAY_DARK_CONNECTED : IDR_BRAVE_VPN_TRAY_DARK;
+
+  int status_icon_id = UseDarkTheme() ? light_icon_id : dark_icon_id;
+  return GetIconFromResources(status_icon_id, {64, 64});
+}
+
 }  // namespace
 
 InteractiveMain* InteractiveMain::GetInstance() {
@@ -44,11 +61,10 @@ InteractiveMain::~InteractiveMain() = default;
 
 void InteractiveMain::SetupStatusIcon() {
   status_tray_ = std::make_unique<StatusTrayWin>();
-  int status_icon_id = brave::ShouldUseDarkTheme() ? IDR_BRAVE_VPN_TRAY_LIGHT
-                                                   : IDR_BRAVE_VPN_TRAY_DARK;
+
   status_icon_ = status_tray_->CreateStatusIcon(
-      brave::GetIconFromResources(status_icon_id, {64, 64}),
-      brave::kBraveVpnIconTooltip);
+      GetStatusTrayIcon(wireguard::IsBraveVPNWireguardConnected()),
+      GetStatusIconTooltip());
 
   status_icon_->SetContextMenu(std::make_unique<BraveVpnMenuModel>(this));
 }
@@ -56,54 +72,85 @@ void InteractiveMain::SetupStatusIcon() {
 void InteractiveMain::ExecuteCommand(int command_id, int event_flags) {
   switch (command_id) {
     case IDC_BRAVE_VPN_TRAY_EXIT_ICON:
+      wireguard::EnableVPNTrayIcon(false);
       SignalExit();
       break;
     case IDC_BRAVE_VPN_TRAY_CONNECT_VPN_ITEM:
-      brave_vpn::wireguard::EnableBraveVpnWireguardService(
+      wireguard::EnableBraveVpnWireguardService(
           "", base::BindOnce(&InteractiveMain::OnConnect,
                              weak_factory_.GetWeakPtr()));
       break;
     case IDC_BRAVE_VPN_TRAY_DISCONNECT_VPN_ITEM:
-      brave_vpn::wireguard::DisableBraveVpnWireguardService(base::BindOnce(
+      wireguard::DisableBraveVpnWireguardService(base::BindOnce(
           &InteractiveMain::OnDisconnect, weak_factory_.GetWeakPtr()));
       break;
     case IDC_BRAVE_VPN_TRAY_MANAGE_ACCOUNT_ITEM:
-      brave::OpenURLInBrowser(kBraveAccountURL);
+      OpenURLInBrowser(kBraveAccountURL);
       break;
     case IDC_BRAVE_VPN_TRAY_ABOUT_ITEM:
-      brave::OpenURLInBrowser(kAboutBraveVPNURL);
+      OpenURLInBrowser(kAboutBraveVPNURL);
       break;
   }
 }
 
 void InteractiveMain::OnConnect(bool success) {
   VLOG(1) << __func__ << ":" << success;
+  UpdateIconState();
+}
+
+void InteractiveMain::UpdateIconState() {
+  if (!status_icon_) {
+    return;
+  }
+  status_icon_->UpdateState(
+      GetStatusTrayIcon(wireguard::IsBraveVPNWireguardConnected()),
+      GetStatusIconTooltip());
 }
 
 void InteractiveMain::OnDisconnect(bool success) {
   VLOG(1) << __func__ << ":" << success;
+  UpdateIconState();
+}
+
+void InteractiveMain::OnStorageUpdated() {
+  VLOG(1) << __func__;
+
+  if (!wireguard::IsVPNTrayIconEnabled()) {
+    SignalExit();
+  }
+}
+
+void InteractiveMain::SetupStorageUpdatedNotifications() {
+  if (storage_.Create(
+          HKEY_CURRENT_USER,
+          brave_vpn::GetBraveVpnWireguardServiceRegistryStoragePath().c_str(),
+          KEY_QUERY_VALUE | KEY_NOTIFY) != ERROR_SUCCESS) {
+    return;
+  }
+  storage_.StartWatching(base::BindRepeating(&InteractiveMain::OnStorageUpdated,
+                                             weak_factory_.GetWeakPtr()));
 }
 
 HRESULT InteractiveMain::Run() {
-  if (!wireguard::IsVPNTrayIconAllowed() ||
+  if (!wireguard::IsVPNTrayIconEnabled() ||
       !wireguard::GetLastUsedConfigPath().has_value() ||
-      !StatusTrayWin::IconWindowExists()) {
-    VLOG(1) << "No config available to connect.";
+      StatusTrayWin::IconWindowExists()) {
     return S_OK;
   }
+
   base::SingleThreadTaskExecutor task_executor(base::MessagePumpType::UI);
   base::ThreadPoolInstance::CreateAndStartWithDefaultParams(
-      "Braver VPN interactive process");
-
+      "Brave VPN Wireguard interactive process");
   base::RunLoop loop;
   quit_ = loop.QuitClosure();
+  SetupStorageUpdatedNotifications();
   SetupStatusIcon();
   loop.Run();
-
   return S_OK;
 }
 
 void InteractiveMain::SignalExit() {
+  status_tray_.reset();
   std::move(quit_).Run();
 }
 

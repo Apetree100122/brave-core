@@ -40,10 +40,7 @@ class StatusIconWin {
   // Re-creates the status tray icon now after the taskbar has been created.
   void ResetIcon();
 
-  UINT icon_id() const { return icon_id_; }
-  HWND window() const { return window_; }
-  UINT message_id() const { return message_id_; }
-
+  void UpdateState(const gfx::ImageSkia& image, const std::u16string& tool_tip);
   void SetImage(const gfx::ImageSkia& image);
   void SetToolTip(const std::u16string& tool_tip);
   void SetContextMenu(std::unique_ptr<BraveVpnMenuModel> menu);
@@ -51,6 +48,10 @@ class StatusIconWin {
 
  private:
   void InitIconData(NOTIFYICONDATA* icon_data);
+
+  UINT icon_id() const { return icon_id_; }
+  HWND window() const { return window_; }
+  UINT message_id() const { return message_id_; }
 
   // The tray that owns us.  Weak.
   raw_ptr<StatusTrayWin> tray_;

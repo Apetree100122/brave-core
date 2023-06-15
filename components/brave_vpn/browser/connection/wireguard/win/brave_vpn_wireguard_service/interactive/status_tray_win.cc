@@ -77,7 +77,7 @@ StatusTrayWin::~StatusTrayWin() {
 
 bool StatusTrayWin::IconWindowExists() {
   return FindWindowEx(nullptr, nullptr, kStatusTrayWindowClass,
-                      kStatusTrayWindowName) == NULL;
+                      kStatusTrayWindowName) != NULL;
 }
 
 StatusIconWin* StatusTrayWin::CreateStatusIcon(const gfx::ImageSkia& image,

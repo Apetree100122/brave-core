@@ -7,6 +7,5 @@ source_set("resources") {
   inputs = [
     "interactive_resource.h",
     "resources_en.rc",
-    "tray_light.ico",
   ]
 }

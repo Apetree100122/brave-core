@@ -5,10 +5,11 @@
 
 #include "brave/components/brave_vpn/browser/connection/wireguard/win/brave_vpn_wireguard_service/interactive/brave_vpn_menu_model.h"
 
-#include "brave/components/brave_vpn/browser/connection/common/win/utils.h"
 #include "brave/components/brave_vpn/browser/connection/wireguard/win/brave_vpn_wireguard_service/common/service_constants.h"
+#include "brave/components/brave_vpn/browser/connection/wireguard/win/brave_vpn_wireguard_service/common/wireguard_utils.h"
 #include "brave/components/brave_vpn/browser/connection/wireguard/win/brave_vpn_wireguard_service/interactive/brave_vpn_interactive_strings_en.h"
 #include "brave/components/brave_vpn/browser/connection/wireguard/win/brave_vpn_wireguard_service/interactive/brave_vpn_tray_command_ids.h"
+#include "brave/components/brave_vpn/browser/connection/wireguard/win/brave_vpn_wireguard_service/interactive/interactive_utils.h"
 #include "ui/gfx/image/image.h"
 
 namespace {
@@ -20,12 +21,9 @@ std::u16string GetVpnStatusLabel(bool active) {
 }  // namespace
 
 struct BraveVpnMenuModel::ItemState {
-  ItemState()
-      : checked(false), enabled(true), visible(true), is_dynamic(false) {}
-  bool checked;
+  ItemState() : enabled(true), visible(true) {}
   bool enabled;
   bool visible;
-  bool is_dynamic;
   ui::Accelerator accelerator;
   std::u16string label;
   gfx::Image icon;
@@ -64,8 +62,7 @@ void BraveVpnMenuModel::ExecuteCommand(int command_id, int event_flags) {
 void BraveVpnMenuModel::RebuildMenu() {
   Clear();
   item_states_.clear();
-  auto active = brave_vpn::IsWindowsServiceRunning(
-      brave_vpn::GetBraveVpnWireguardTunnelServiceName());
+  auto active = brave_vpn::wireguard::IsBraveVPNWireguardConnected();
   AddItem(IDC_BRAVE_VPN_TRAY_STATUS_ITEM, GetVpnStatusLabel(active));
   SetEnabledAt(0, false);
   if (active) {
@@ -79,6 +76,6 @@ void BraveVpnMenuModel::RebuildMenu() {
   AddItem(IDC_BRAVE_VPN_TRAY_MANAGE_ACCOUNT_ITEM,
           brave::kBraveVpnManageAccountItemName);
   AddItem(IDC_BRAVE_VPN_TRAY_ABOUT_ITEM, brave::kBraveVpnAboutItemName);
-  //AddSeparator(ui::NORMAL_SEPARATOR);
-  // AddItem(IDC_BRAVE_VPN_TRAY_EXIT_ICON, brave::kBraveVpnRemoveItemName);
+  AddSeparator(ui::NORMAL_SEPARATOR);
+  AddItem(IDC_BRAVE_VPN_TRAY_EXIT_ICON, brave::kBraveVpnRemoveItemName);
 }

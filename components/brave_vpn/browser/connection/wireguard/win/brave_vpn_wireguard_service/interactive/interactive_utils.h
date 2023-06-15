@@ -6,13 +6,15 @@
 #ifndef BRAVE_COMPONENTS_BRAVE_VPN_BROWSER_CONNECTION_WIREGUARD_WIN_BRAVE_VPN_WIREGUARD_SERVICE_INTERACTIVE_INTERACTIVE_UTILS_H_
 #define BRAVE_COMPONENTS_BRAVE_VPN_BROWSER_CONNECTION_WIREGUARD_WIN_BRAVE_VPN_WIREGUARD_SERVICE_INTERACTIVE_INTERACTIVE_UTILS_H_
 
-#include "ui/gfx/geometry/size.h"
-#include "ui/gfx/image/image_skia.h"
+namespace gfx {
+class ImageSkia;
+class Size;
+}  // namespace gfx
 
-namespace brave {
+namespace brave_vpn {
+bool UseDarkTheme();
 gfx::ImageSkia GetIconFromResources(int icon_id, gfx::Size size);
-bool ShouldUseDarkTheme();
 void OpenURLInBrowser(const char* url);
-}  // namespace brave
+}  // namespace brave_vpn
 
 #endif  // BRAVE_COMPONENTS_BRAVE_VPN_BROWSER_CONNECTION_WIREGUARD_WIN_BRAVE_VPN_WIREGUARD_SERVICE_INTERACTIVE_INTERACTIVE_UTILS_H_

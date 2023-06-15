@@ -115,6 +115,13 @@ void StatusIconWin::SetToolTip(const std::u16string& tool_tip) {
   }
 }
 
+void StatusIconWin::UpdateState(const gfx::ImageSkia& image,
+                                const std::u16string& tool_tip) {
+  ResetIcon();
+  SetImage(image);
+  SetToolTip(tool_tip);
+}
+
 void StatusIconWin::SetContextMenu(std::unique_ptr<BraveVpnMenuModel> menu) {
   menu_model_ = std::move(menu);
 }

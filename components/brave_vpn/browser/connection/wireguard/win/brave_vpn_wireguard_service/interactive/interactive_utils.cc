@@ -14,8 +14,9 @@
 #include "base/win/registry.h"
 #include "ui/gfx/icon_util.h"
 #include "ui/gfx/image/image_family.h"
+#include "ui/gfx/image/image_skia.h"
 
-namespace brave {
+namespace brave_vpn {
 
 namespace {
 
@@ -25,7 +26,6 @@ std::unique_ptr<gfx::ImageFamily> GetAppIconImageFamily(int icon_id) {
   DCHECK(module);
   return IconUtil::CreateImageFamilyFromIconResource(module, icon_id);
 }
-
 }  // namespace
 
 gfx::ImageSkia GetIconFromResources(int icon_id, gfx::Size size) {
@@ -38,7 +38,7 @@ gfx::ImageSkia GetIconFromResources(int icon_id, gfx::Size size) {
   return family->CreateExact(size).AsImageSkia();
 }
 
-bool ShouldUseDarkTheme() {
+bool UseDarkTheme() {
   base::win::RegKey key;
   if (key.Open(HKEY_CURRENT_USER,
                L"Software\\Microsoft\\Windows\\"
@@ -61,4 +61,5 @@ void OpenURLInBrowser(const char* url) {
     return;
   }
 }
-}  // namespace brave
+
+}  // namespace brave_vpn

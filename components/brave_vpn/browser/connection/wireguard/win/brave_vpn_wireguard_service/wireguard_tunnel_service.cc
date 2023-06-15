@@ -24,6 +24,7 @@
 #include "brave/components/brave_vpn/browser/connection/common/win/scoped_sc_handle.h"
 #include "brave/components/brave_vpn/browser/connection/common/win/utils.h"
 #include "brave/components/brave_vpn/browser/connection/wireguard/win/brave_vpn_wireguard_service/common/service_constants.h"
+#include "brave/components/brave_vpn/browser/connection/wireguard/win/brave_vpn_wireguard_service/common/storage_utils.h"
 #include "brave/components/brave_vpn/browser/connection/wireguard/win/brave_vpn_wireguard_service/common/wireguard_utils.h"
 #include "brave/components/brave_vpn/browser/connection/wireguard/win/brave_vpn_wireguard_service/process_utils.h"
 
