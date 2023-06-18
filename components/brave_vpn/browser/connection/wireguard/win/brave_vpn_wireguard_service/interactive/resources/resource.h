@@ -12,6 +12,8 @@
 #define IDR_BRAVE_VPN_TRAY_LIGHT                  102
 #define IDR_BRAVE_VPN_TRAY_DARK_CONNECTED         103
 #define IDR_BRAVE_VPN_TRAY_LIGHT_CONNECTED        104
+#define IDR_BRAVE_VPN_TRAY_DARK_ERROR             105
+#define IDR_BRAVE_VPN_TRAY_LIGHT_ERROR            106
 
 // clang-format on
 

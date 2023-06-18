@@ -19,7 +19,7 @@ HRESULT HRESULTFromLastError() {
   return (error_code != NO_ERROR) ? HRESULT_FROM_WIN32(error_code) : E_FAIL;
 }
 
-bool IsWindowsServiceRunning(const std::wstring& service_name) {
+DWORD GetWindowsServiceStatus(const std::wstring& service_name) {
   ScopedScHandle scm(::OpenSCManager(nullptr, nullptr, SC_MANAGER_CONNECT));
   if (!scm.IsValid()) {
     VLOG(1) << "::OpenSCManager failed. service_name: " << service_name
@@ -38,7 +38,11 @@ bool IsWindowsServiceRunning(const std::wstring& service_name) {
   if (!::QueryServiceStatus(service.Get(), &service_status)) {
     return false;
   }
-  return service_status.dwCurrentState == SERVICE_RUNNING;
+  return service_status.dwCurrentState;
+}
+
+bool IsWindowsServiceRunning(const std::wstring& service_name) {
+  return GetWindowsServiceStatus(service_name) == SERVICE_RUNNING;
 }
 
 bool SetServiceFailureActions(SC_HANDLE service) {

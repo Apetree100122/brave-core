@@ -80,14 +80,17 @@ bool StatusTrayWin::IconWindowExists() {
                       kStatusTrayWindowName) != NULL;
 }
 
-StatusIconWin* StatusTrayWin::CreateStatusIcon(const gfx::ImageSkia& image,
-                                               const std::u16string& tool_tip) {
+StatusIconWin* StatusTrayWin::GetStatusIcon() {
+  return status_icon_.get();
+}
+
+void StatusTrayWin::CreateStatusIcon(const gfx::ImageSkia& image,
+                                     const std::u16string& tool_tip) {
   status_icon_ = std::make_unique<StatusIconWin>(
       this, kBaseIconId, window_.get(), kStatusIconMessage);
 
   status_icon_->SetImage(image);
   status_icon_->SetToolTip(tool_tip);
-  return status_icon_.get();
 }
 
 LRESULT CALLBACK StatusTrayWin::WndProcStatic(HWND hwnd,

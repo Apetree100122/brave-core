@@ -32,20 +32,27 @@ namespace {
 constexpr char kBraveAccountURL[] = "http://account.brave.com/";
 constexpr char kAboutBraveVPNURL[] = "https://brave.com/firewall-vpn/";
 
-std::u16string GetStatusIconTooltip() {
-  return wireguard::IsBraveVPNWireguardConnected()
-             ? brave::kBraveVpnIconTooltip
-             : brave::kBraveVpnIconTooltipConnected;
+std::u16string GetStatusIconTooltip(bool connected, bool error) {
+  if (error) {
+    return brave::kBraveVpnIconTooltipError;
+  }
+  return connected ? brave::kBraveVpnIconTooltipConnected
+                   : brave::kBraveVpnIconTooltip;
 }
 
-gfx::ImageSkia GetStatusTrayIcon(bool connected) {
+gfx::ImageSkia GetStatusTrayIcon(bool connected, bool error) {
+  bool dark_theme = UseDarkTheme();
+  if (error) {
+    int status_icon_id = dark_theme ? IDR_BRAVE_VPN_TRAY_LIGHT_ERROR
+                                    : IDR_BRAVE_VPN_TRAY_DARK_ERROR;
+    return GetIconFromResources(status_icon_id, {64, 64});
+  }
   int light_icon_id =
       connected ? IDR_BRAVE_VPN_TRAY_LIGHT_CONNECTED : IDR_BRAVE_VPN_TRAY_LIGHT;
   int dark_icon_id =
       connected ? IDR_BRAVE_VPN_TRAY_DARK_CONNECTED : IDR_BRAVE_VPN_TRAY_DARK;
-
-  int status_icon_id = UseDarkTheme() ? light_icon_id : dark_icon_id;
-  return GetIconFromResources(status_icon_id, {64, 64});
+  return GetIconFromResources(dark_theme ? light_icon_id : dark_icon_id,
+                              {64, 64});
 }
 
 }  // namespace
@@ -61,12 +68,12 @@ InteractiveMain::~InteractiveMain() = default;
 
 void InteractiveMain::SetupStatusIcon() {
   status_tray_ = std::make_unique<StatusTrayWin>();
-
-  status_icon_ = status_tray_->CreateStatusIcon(
-      GetStatusTrayIcon(wireguard::IsBraveVPNWireguardConnected()),
-      GetStatusIconTooltip());
-
-  status_icon_->SetContextMenu(std::make_unique<BraveVpnMenuModel>(this));
+  auto connected = wireguard::IsBraveVPNWireguardTunnelServiceRunning();
+  status_tray_->CreateStatusIcon(GetStatusTrayIcon(connected, false),
+                                 GetStatusIconTooltip(connected, false));
+  SetupServiceWatcher(connected);
+  status_tray_->GetStatusIcon()->SetContextMenu(
+      std::make_unique<BraveVpnMenuModel>(this));
 }
 
 void InteractiveMain::ExecuteCommand(int command_id, int event_flags) {
@@ -77,12 +84,12 @@ void InteractiveMain::ExecuteCommand(int command_id, int event_flags) {
       break;
     case IDC_BRAVE_VPN_TRAY_CONNECT_VPN_ITEM:
       wireguard::EnableBraveVpnWireguardService(
-          "", base::BindOnce(&InteractiveMain::OnConnect,
+          "", base::BindOnce(&InteractiveMain::OnConnected,
                              weak_factory_.GetWeakPtr()));
       break;
     case IDC_BRAVE_VPN_TRAY_DISCONNECT_VPN_ITEM:
       wireguard::DisableBraveVpnWireguardService(base::BindOnce(
-          &InteractiveMain::OnDisconnect, weak_factory_.GetWeakPtr()));
+          &InteractiveMain::OnDisconnected, weak_factory_.GetWeakPtr()));
       break;
     case IDC_BRAVE_VPN_TRAY_MANAGE_ACCOUNT_ITEM:
       OpenURLInBrowser(kBraveAccountURL);
@@ -93,23 +100,28 @@ void InteractiveMain::ExecuteCommand(int command_id, int event_flags) {
   }
 }
 
-void InteractiveMain::OnConnect(bool success) {
+void InteractiveMain::OnConnected(bool success) {
   VLOG(1) << __func__ << ":" << success;
-  UpdateIconState();
+  UpdateIconState(!success);
 }
 
-void InteractiveMain::UpdateIconState() {
-  if (!status_icon_) {
+void InteractiveMain::UpdateIconState(bool error) {
+  if (!status_tray_ || !status_tray_->GetStatusIcon()) {
     return;
   }
-  status_icon_->UpdateState(
-      GetStatusTrayIcon(wireguard::IsBraveVPNWireguardConnected()),
-      GetStatusIconTooltip());
+  auto connected = wireguard::IsBraveVPNWireguardTunnelServiceRunning();
+  LOG(ERROR) << __func__ << ": connected:" << connected << ", error:" << error;
+  status_tray_->GetStatusIcon()->UpdateState(
+      GetStatusTrayIcon(connected, error),
+      GetStatusIconTooltip(connected, error));
 }
 
-void InteractiveMain::OnDisconnect(bool success) {
+void InteractiveMain::OnDisconnected(bool success) {
   VLOG(1) << __func__ << ":" << success;
-  UpdateIconState();
+  // If the tunnel service disconnected it becomes marked for deletion and we
+  // have to close all service instances to let system to delete the service.
+  service_watcher_.reset();
+  UpdateIconState(!success);
 }
 
 void InteractiveMain::OnStorageUpdated() {
@@ -118,6 +130,23 @@ void InteractiveMain::OnStorageUpdated() {
   if (!wireguard::IsVPNTrayIconEnabled()) {
     SignalExit();
   }
+}
+
+void InteractiveMain::SetupServiceWatcher(bool connected) {
+  LOG(ERROR) << __func__ << ":" << connected;
+  if (connected) {
+    service_watcher_.reset();
+    RunServiceWatcher(brave_vpn::GetBraveVpnWireguardTunnelServiceName());
+    return;
+  }
+  if (service_watcher_ && service_watcher_->GetServiceName() ==
+                              brave_vpn::GetBraveVpnWireguardServiceName()) {
+    LOG(ERROR) << __func__ << ": continue watching";
+    service_watcher_->StartWatching();
+    return;
+  }
+  service_watcher_.reset();
+  RunServiceWatcher(brave_vpn::GetBraveVpnWireguardServiceName());
 }
 
 void InteractiveMain::SetupStorageUpdatedNotifications() {
@@ -129,6 +158,25 @@ void InteractiveMain::SetupStorageUpdatedNotifications() {
   }
   storage_.StartWatching(base::BindRepeating(&InteractiveMain::OnStorageUpdated,
                                              weak_factory_.GetWeakPtr()));
+}
+
+void InteractiveMain::OnServiceStateUpdated(int mask) {
+  UpdateIconState(false);
+  LOG(ERROR) << __func__ << ":" << service_watcher_->GetServiceName();
+
+  SetupServiceWatcher(wireguard::IsBraveVPNWireguardTunnelServiceRunning());
+}
+
+bool InteractiveMain::RunServiceWatcher(const std::wstring& service_name) {
+  if (service_watcher_ && service_watcher_->IsWatching()) {
+    return false;
+  }
+  LOG(ERROR) << __func__ << ":" << service_name;
+  service_watcher_.reset(new brave::ServiceWatcher());
+  return service_watcher_->Subscribe(
+      service_name, SERVICE_NOTIFY_STOPPED,
+      base::BindRepeating(&InteractiveMain::OnServiceStateUpdated,
+                          weak_factory_.GetWeakPtr()));
 }
 
 HRESULT InteractiveMain::Run() {
@@ -150,6 +198,7 @@ HRESULT InteractiveMain::Run() {
 }
 
 void InteractiveMain::SignalExit() {
+  service_watcher_.reset();
   status_tray_.reset();
   std::move(quit_).Run();
 }

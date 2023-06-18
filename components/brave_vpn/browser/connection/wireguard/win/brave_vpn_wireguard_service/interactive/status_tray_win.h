@@ -26,8 +26,9 @@ class StatusTrayWin {
 
   static bool IconWindowExists();
 
-  StatusIconWin* CreateStatusIcon(const gfx::ImageSkia& image,
-                                  const std::u16string& tool_tip);
+  void CreateStatusIcon(const gfx::ImageSkia& image,
+                        const std::u16string& tool_tip);
+  StatusIconWin* GetStatusIcon();
 
  private:
   // Static callback invoked when a message comes in to our messaging window.

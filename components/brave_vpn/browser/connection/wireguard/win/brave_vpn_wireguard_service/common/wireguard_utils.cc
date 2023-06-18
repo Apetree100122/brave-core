@@ -43,8 +43,11 @@ constexpr char kWireguardConfigTemplate[] = R"(
 
 namespace wireguard {
 
-bool IsBraveVPNWireguardConnected() {
-  return IsWindowsServiceRunning(GetBraveVpnWireguardTunnelServiceName());
+bool IsBraveVPNWireguardTunnelServiceRunning() {
+  auto status =
+      GetWindowsServiceStatus(GetBraveVpnWireguardTunnelServiceName());
+  LOG(ERROR) << __func__ << ":" << status;
+  return status == SERVICE_RUNNING || status == SERVICE_START_PENDING;
 }
 
 absl::optional<std::string> CreateWireguardConfig(

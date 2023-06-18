@@ -62,7 +62,7 @@ void BraveVpnMenuModel::ExecuteCommand(int command_id, int event_flags) {
 void BraveVpnMenuModel::RebuildMenu() {
   Clear();
   item_states_.clear();
-  auto active = brave_vpn::wireguard::IsBraveVPNWireguardConnected();
+  auto active = brave_vpn::wireguard::IsBraveVPNWireguardTunnelServiceRunning();
   AddItem(IDC_BRAVE_VPN_TRAY_STATUS_ITEM, GetVpnStatusLabel(active));
   SetEnabledAt(0, false);
   if (active) {

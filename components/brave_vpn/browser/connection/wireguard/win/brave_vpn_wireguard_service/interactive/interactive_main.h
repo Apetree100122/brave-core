@@ -11,10 +11,14 @@
 #include "base/no_destructor.h"
 #include "base/win/registry.h"
 #include "base/win/windows_types.h"
+#include "brave/components/brave_vpn/browser/connection/common/win/brave_windows_service_watcher.h"
 #include "brave/components/brave_vpn/browser/connection/wireguard/win/brave_vpn_wireguard_service/interactive/brave_vpn_menu_model.h"
 
-class StatusIconWin;
 class StatusTrayWin;
+
+namespace brave {
+class ServiceWatcher;
+}  // namespace brave
 
 namespace brave_vpn {
 
@@ -38,15 +42,18 @@ class InteractiveMain : public BraveVpnMenuModel::Delegate {
   InteractiveMain();
   ~InteractiveMain() override;
 
-  void UpdateIconState();
-  void OnConnect(bool success);
-  void OnDisconnect(bool success);
-  void OnStorageUpdated();
   void SetupStorageUpdatedNotifications();
+  bool RunServiceWatcher(const std::wstring& service_name);
+  void SetupServiceWatcher(bool connected);
+  void UpdateIconState(bool error);
+  void OnConnected(bool success);
+  void OnDisconnected(bool success);
+  void OnStorageUpdated();
+
+  void OnServiceStateUpdated(int mask);
 
   std::unique_ptr<StatusTrayWin> status_tray_;
-  // Reference to our status icon (if any) - owned by the StatusTray.
-  raw_ptr<StatusIconWin, DanglingUntriaged> status_icon_ = nullptr;
+  std::unique_ptr<brave::ServiceWatcher> service_watcher_;
   base::win::RegKey storage_;
   base::OnceClosure quit_;
   base::WeakPtrFactory<InteractiveMain> weak_factory_{this};

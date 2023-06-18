@@ -11,6 +11,7 @@ namespace brave {
 // https://github.com/brave/brave-browser/issues/30959
 constexpr char16_t kBraveVpnIconTooltip[] = u"Brave VPN: Disconnected";
 constexpr char16_t kBraveVpnIconTooltipConnected[] = u"Brave VPN: Connected";
+constexpr char16_t kBraveVpnIconTooltipError[] = u"Brave VPN: Error";
 constexpr char16_t kBraveVpnStatusItemName[] = u"Status: ";
 constexpr char16_t kBraveVpnConnectItemName[] = u"Connect";
 constexpr char16_t kBraveVpnDisconnectItemName[] = u"Disconnect";

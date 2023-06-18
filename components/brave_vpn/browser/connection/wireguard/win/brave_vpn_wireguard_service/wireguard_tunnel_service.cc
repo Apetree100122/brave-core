@@ -128,6 +128,7 @@ bool IsServiceRunning(SC_HANDLE service) {
   if (!::QueryServiceStatus(service, &service_status)) {
     return false;
   }
+  LOG(ERROR) << "status:" << service_status.dwCurrentState;
   return service_status.dwCurrentState == SERVICE_RUNNING;
 }
 
@@ -175,16 +176,17 @@ bool RemoveExistingWireguardService() {
   if (service.IsValid()) {
     if (IsServiceRunning(service.Get())) {
       SERVICE_STATUS stt;
+      // TODO(spylogsster): Wait until service stopped.
+      // https://github.com/brave/brave-browser/issues/30706
       if (!ControlService(service.Get(), SERVICE_CONTROL_STOP, &stt)) {
         VLOG(1) << "ControlService failed to send stop signal";
         return false;
       }
-      // TODO(spylogsster): Wait until service stopped.
     }
     if (!DeleteService(service.Get())) {
-      VLOG(1) << "DeleteService failed, error: " << std::hex
-              << HRESULTFromLastError();
-      return false;
+      VLOG(1) << "DeleteService failed, error: "
+              << logging::SystemErrorCodeToString(
+                     logging::GetLastSystemErrorCode());
     }
   }
   return true;
@@ -237,7 +239,7 @@ bool CreateAndRunBraveWireguardService(const std::wstring& encoded_config) {
     return false;
   }
 
-  if (!brave_vpn::SetServiceFailureActions(service.Get())) {
+  if (!SetServiceFailureActions(service.Get())) {
     VLOG(1) << "SetServiceFailActions failed:" << std::hex
             << HRESULTFromLastError();
     return false;
