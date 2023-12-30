@@ -1,3 +1,32 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 {
   "compilerOptions": {
     "sourceMap": true,
@@ -62,19 +91,34 @@
         "../out/Debug/gen/brave/ui/webui/resources/tsc/*",
         "../out/Component_arm64/gen/brave/ui/webui/resources/tsc/*",
         "../out/Static_arm64/gen/brave/ui/webui/resources/tsc/*",
-        "../out/Release_arm64/gen/brave/ui/webui/resources/tsc/*",
-        "../out/Debug_arm64/gen/brave/ui/webui/resources/tsc/*"
-      ],
-      "$web-common/*": ["components/common/*"],
-      "$web-components/*": ["components/web-components/*"]
-    },
-    "typeRoots": ["./node_modules/@types", "./components/definitions"],
-    // optional
-    "forceConsistentCasingInFileNames": true,
-    "noImplicitReturns": true,
-    "strictNullChecks": true,
-    "suppressImplicitAnyIndexErrors": true,
-    "noUnusedLocals": true
-  },
-  "include": []
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
